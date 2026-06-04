@@ -209,6 +209,14 @@
         .btn-proses i { transition: transform .15s ease; }
         .btn-proses:hover i { transform: translateX(3px); }
 
+        /* Label untuk order Pending (tanpa tombol Proses) */
+        .aksi-menunggu {
+            display: inline-flex; align-items: center; gap: .35rem;
+            color: var(--muted); font-size: .82rem; font-weight: 600;
+            background: var(--surface-strong); border: 1px solid var(--border);
+            padding: .45rem .8rem; border-radius: 10px;
+        }
+
         /* ---------- Empty state ---------- */
         .empty-state { text-align: center; padding: 60px 20px; }
         .empty-state .empty-icon {
@@ -357,9 +365,13 @@
                             </td>
                             <td class="date-cell"><i class="far fa-calendar me-1"></i><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></td>
                             <td class="text-end">
-                                <a href="<?= base_url('joki/detail/' . $order['order_id']) ?>" class="btn-proses">
-                                    Proses <i class="fas fa-arrow-right"></i>
-                                </a>
+                                <?php if ($order['status_pembelian'] == 'Pending'): ?>
+                                    <span class="aksi-menunggu"><i class="fas fa-hourglass-half"></i>Menunggu</span>
+                                <?php else: ?>
+                                    <a href="<?= base_url('joki/detail/' . $order['order_id']) ?>" class="btn-proses">
+                                        Proses <i class="fas fa-arrow-right"></i>
+                                    </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
