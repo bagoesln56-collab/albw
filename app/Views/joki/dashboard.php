@@ -217,6 +217,23 @@
             padding: .45rem .8rem; border-radius: 10px;
         }
 
+        /* Stat card yang bisa diklik (Order Pending) */
+        .stat-card.clickable { cursor: pointer; }
+        .stat-card.clickable:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+        /* Tombol soft (untuk modal) */
+        .btn-soft {
+            background: var(--surface-strong); border: 1px solid var(--border); color: var(--text);
+            font-weight: 600; border-radius: 10px; padding: .45rem .9rem;
+        }
+        .btn-soft:hover { color: #fff; background: rgba(255,255,255,.12); }
+
+        /* Modal dark */
+        .modal-content.panel { background: rgba(15, 20, 40, .96); color: var(--text); }
+        .modal-content.panel .modal-header,
+        .modal-content.panel .modal-footer { background: transparent; }
+        .modal-backdrop.show { opacity: .65; }
+
         /* ---------- Empty state ---------- */
         .empty-state { text-align: center; padding: 60px 20px; }
         .empty-state .empty-icon {
@@ -276,8 +293,12 @@
         // Urutkan: order yang masuk lebih dulu tampil di atas (FIFO)
         usort($orders, fn($a, $b) => strtotime($a['created_at']) <=> strtotime($b['created_at']));
 
-        $countProses  = count(array_filter($orders, fn($o) => $o['status_pembelian'] == 'Proses'));
-        $countPending = count(array_filter($orders, fn($o) => $o['status_pembelian'] == 'Pending'));
+        // Pisahkan list Proses & Pending
+        $orderProses  = array_values(array_filter($orders, fn($o) => $o['status_pembelian'] == 'Proses'));
+        $orderPending = array_values(array_filter($orders, fn($o) => $o['status_pembelian'] == 'Pending'));
+
+        $countProses  = count($orderProses);
+        $countPending = count($orderPending);
         $countTotal   = count($orders);
     ?>
     <div class="row g-3 mb-4">
@@ -294,11 +315,11 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="stat-card orange">
+            <div class="stat-card orange clickable" data-bs-toggle="modal" data-bs-target="#pendingModal" role="button" tabindex="0">
                 <span class="glow"></span>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="label">Order Pending</div>
+                        <div class="label">Order Pending <i class="fas fa-up-right-from-square ms-1 small opacity-75"></i></div>
                         <div class="value"><?= $countPending ?></div>
                     </div>
                     <div class="icon-wrap"><i class="fas fa-clock"></i></div>
@@ -319,14 +340,14 @@
         </div>
     </div>
 
-    <!-- ============ TABLE ============ -->
+    <!-- ============ TABLE (hanya order Proses) ============ -->
     <div class="panel">
         <div class="panel-head">
             <h5 class="panel-title">
                 <span class="dot"><i class="fas fa-list"></i></span>
-                Daftar Order Masuk
+                Order Sedang Diproses
             </h5>
-            <?php if (!empty($orders)): ?>
+            <?php if (!empty($orderProses)): ?>
             <div class="search-box">
                 <i class="fas fa-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="Cari invoice / produk...">
@@ -334,11 +355,17 @@
             <?php endif; ?>
         </div>
 
-        <?php if (empty($orders)): ?>
+        <?php if (empty($orderProses)): ?>
             <div class="empty-state">
-                <div class="empty-icon"><i class="fas fa-inbox"></i></div>
-                <h6 class="fw-bold mb-1">Belum ada order masuk</h6>
-                <p class="page-sub mb-0">Order baru akan muncul di sini secara otomatis.</p>
+                <div class="empty-icon"><i class="fas fa-mug-hot"></i></div>
+                <h6 class="fw-bold mb-1">Tidak ada order yang sedang diproses</h6>
+                <p class="page-sub mb-0">
+                    <?php if ($countPending > 0): ?>
+                        Ada <strong class="text-warning"><?= $countPending ?></strong> order pending — klik kartu oren di atas untuk melihatnya.
+                    <?php else: ?>
+                        Order baru akan muncul di sini secara otomatis.
+                    <?php endif; ?>
+                </p>
             </div>
         <?php else: ?>
             <div class="table-responsive">
@@ -354,27 +381,19 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($orders as $i => $order): ?>
+                        <?php foreach ($orderProses as $i => $order): ?>
                         <tr>
                             <td><span class="row-index"><?= $i + 1 ?></span></td>
                             <td><span class="invoice-code"><?= $order['order_id'] ?></span></td>
                             <td class="produk-name"><?= $order['produk'] ?></td>
                             <td>
-                                <?php if ($order['status_pembelian'] == 'Proses'): ?>
-                                    <span class="badge-status badge-proses"><span class="pulse"></span>Proses</span>
-                                <?php else: ?>
-                                    <span class="badge-status badge-pending"><span class="pulse"></span>Pending</span>
-                                <?php endif; ?>
+                                <span class="badge-status badge-proses"><span class="pulse"></span>Proses</span>
                             </td>
                             <td class="date-cell"><i class="far fa-calendar me-1"></i><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></td>
                             <td class="text-end">
-                                <?php if ($order['status_pembelian'] == 'Pending'): ?>
-                                    <span class="aksi-menunggu"><i class="fas fa-hourglass-half"></i>Menunggu</span>
-                                <?php else: ?>
-                                    <a href="<?= base_url('joki/detail/' . $order['order_id']) ?>" class="btn-proses">
-                                        Proses <i class="fas fa-arrow-right"></i>
-                                    </a>
-                                <?php endif; ?>
+                                <a href="<?= base_url('joki/detail/' . $order['order_id']) ?>" class="btn-proses">
+                                    Proses <i class="fas fa-arrow-right"></i>
+                                </a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -386,6 +405,56 @@
                 </div>
             </div>
         <?php endif; ?>
+    </div>
+
+    <!-- ============ MODAL: Order Pending ============ -->
+    <div class="modal fade" id="pendingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content panel" style="border-radius:18px;">
+                <div class="modal-header" style="border-bottom:1px solid var(--border);">
+                    <h5 class="panel-title m-0">
+                        <span class="dot" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="fas fa-clock"></i></span>
+                        Order Pending <span class="badge-status badge-pending ms-2"><?= $countPending ?></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <?php if (empty($orderPending)): ?>
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fas fa-circle-check"></i></div>
+                            <h6 class="fw-bold mb-1">Tidak ada order pending</h6>
+                            <p class="page-sub mb-0">Semua order sudah ditangani 🎉</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle m-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Invoice</th>
+                                        <th>Produk</th>
+                                        <th>Tanggal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($orderPending as $i => $order): ?>
+                                    <tr>
+                                        <td><span class="row-index"><?= $i + 1 ?></span></td>
+                                        <td><span class="invoice-code"><?= $order['order_id'] ?></span></td>
+                                        <td class="produk-name"><?= $order['produk'] ?></td>
+                                        <td class="date-cell"><i class="far fa-calendar me-1"></i><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border);">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <p class="text-center page-sub mt-4 mb-0">
