@@ -273,6 +273,9 @@
 
     <!-- ============ STATS ============ -->
     <?php
+        // Urutkan: order yang masuk lebih dulu tampil di atas (FIFO)
+        usort($orders, fn($a, $b) => strtotime($a['created_at']) <=> strtotime($b['created_at']));
+
         $countProses  = count(array_filter($orders, fn($o) => $o['status_pembelian'] == 'Proses'));
         $countPending = count(array_filter($orders, fn($o) => $o['status_pembelian'] == 'Pending'));
         $countTotal   = count($orders);
